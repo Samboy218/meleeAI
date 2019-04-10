@@ -81,6 +81,10 @@ dolphin.run(render=True)
 #   dolphin will hang waiting for input and never receive it
 controller.connect()
 
+
+#MY CODE
+actor = testAi.BasicLearner(8, 2)
+
 #Main loop
 while True:
     #"step" to the next frame
@@ -97,12 +101,11 @@ while True:
         #   in the gamestate and decide what buttons to push on the controller
         #print("State:", gamestate.tolist())
         #print("projectiles:", [x.tolist() for x in gamestate.projectiles])
-        testAi.act(gamestate, controller)
-
-        #if args.framerecord:
-        #    melee.techskill.upsmashes(ai_state=gamestate.ai_state, controller=controller)
-        #else:
-        #    melee.techskill.multishine(ai_state=gamestate.ai_state, controller=controller)
+        action = testAi.doit(gamestate)
+        if action == 1:
+            melee.techskill.multishine(ai_state=gamestate.ai_state, controller=controller)
+        else:
+            controller.empty_input()
     #If we're at the character select screen, choose our character
     elif gamestate.menu_state == melee.enums.Menu.CHARACTER_SELECT:
         print("in char select")
