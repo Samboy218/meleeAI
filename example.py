@@ -100,7 +100,7 @@ while True:
         print("WARNING: Last frame took " + str(gamestate.processingtime*1000) + "ms to process.")
 
     #What menu are we in?
-    if gamestate.menu_state in [melee.enums.Menu.IN_GAME, melee.enums.Menu.SUDDEN_DEATH]:
+    if gamestate.menu_state in [melee.enums.Menu.IN_GAME]:
         if args.framerecord:
             framedata.recordframe(gamestate)
         #XXX: This is where your AI does all of its stuff!
@@ -110,7 +110,7 @@ while True:
         #print("projectiles:", [x.tolist() for x in gamestate.projectiles])
 
         #restart the game if either percent gets to 999 or we're in sudden death
-        if gamestate.ai_state.percent >= 999 or gamestate.opponent_state.percent >= 999 or gamestate.menu_state == melee.enums.Menu.SUDDEN_DEATH:
+        if gamestate.ai_state.percent >= 999 or gamestate.opponent_state.percent >= 999:
             seq = [melee.enums.Button.BUTTON_L,melee.enums.Button.BUTTON_R,melee.enums.Button.BUTTON_A,melee.enums.Button.BUTTON_START]
             if paused < 0:
                 paused = 0
@@ -127,15 +127,13 @@ while True:
 
             action = actor.doit(gamestate)
             if action == 1:
-                #melee.techskill.multishine(ai_state=gamestate.ai_state, controller=controller)
-
+                controller.press_button(melee.enums.Button.BUTTON_R)
                 #If standing, shine
-                if gamestate.ai_state.action == melee.enums.Action.STANDING or gamestate.ai_state.action == melee.enums.Action.KNEE_BEND:
-                    actor.shine(gamestate, controller)
+                #if gamestate.ai_state.action == melee.enums.Action.STANDING or gamestate.ai_state.action == melee.enums.Action.KNEE_BEND:
                     #controller.press_button(melee.enums.Button.BUTTON_B)
                     #controller.tilt_analog(melee.enums.Button.BUTTON_MAIN, .5, 0)
-                else:
-                    controller.empty_input()
+                #else:
+                    #controller.empty_input()
             else:
                 controller.empty_input()
 

@@ -1,4 +1,5 @@
 import melee
+from melee import Action
 import math
 #import tensorflow as tf
 import numpy as np
@@ -26,6 +27,12 @@ class BasicLearner:
         self.prev_opp_pct = 0
         self.train_freq = train_freq
         self.curr_frame = 0
+        self.shine1 = 0
+        self.shine2 = 0
+        #0 = not in shine
+        #1 = done shine 1
+        #2 = done shine 2
+        self.shine_state = 0
 
     def build_model(self):
         model = Sequential()
@@ -106,42 +113,14 @@ class BasicLearner:
         reward += self.prev_pct - pct
         self.prev_pct = pct
         self.prev_opp_pct = opp_pct
-        #if gamestate.ai_state.action == melee.enums.Action.SHIELD_REFLECT:
-        #    print("reflect")
-        #    reward += 10
+        #print(gamestate.ai_state.action)
+        '''
+        if gamestate.ai_state.action == Action.SHIELD_STUN:
+            print("reflect")
+            reward += 10
+        '''
+        if gamestate.ai_state.action in [Action.SHIELD_BREAK_FLY, Action.SHIELD_BREAK_FALL]:
+            #print("stun")
+            reward -= 10
         return reward
-
-    #frame 1 is okay, frame 7 is okay, frame 15 is okay
-    def shine(self, gamestate, controller):
-        if self.shine1 != -1:
-            self.shine1 = self.curr_frame
-            controller.press_button(melee.enums.Button.BUTTON_B)
-            controller.tilt_analog(melee.enums.Button.BUTTON_MAIN, .5, 0)
-            return
-        #if we're here, then we're in the middle of a multishine
-        if self.curr_frame - self.shine1 == 7:
-            #do shine 2
-            self.shine2 = self.curr_frame
-            self.shine1 = -1
-            controller.press_button(melee.enums.Button.BUTTON_B)
-            controller.tilt_analog(melee.enums.Button.BUTTON_MAIN, .5, 0)
-            return
-        if self.curr_frame - self.shine2 == 8:
-            #shine 3, and then we are basically at shine2 again
-            self.shine2 = self.curr_frame
-            self.shine1 = -1
-            controller.press_button(melee.enums.Button.BUTTON_B)
-            controller.tilt_analog(melee.enums.Button.BUTTON_MAIN, .5, 0)
-            return
-        if self.curr_frame - self.shine2 > 8:
-            #we've passed the multishine period
-            self.shine1 = self.curr_frame
-            controller.press_button(melee.enums.Button.BUTTON_B)
-            controller.tilt_analog(melee.enums.Button.BUTTON_MAIN, .5, 0)
-            return
-        #we're in the middle of a shine, dont do anything
-        controller.empty_input()
-
-
-
 
