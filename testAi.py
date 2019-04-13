@@ -8,6 +8,7 @@ from keras.layers import Dense
 from keras.optimizers import Adam
 import random
 from collections import deque
+import copy
 
 class BasicLearner:
     def __init__(self, action_size, train_freq):
@@ -23,8 +24,7 @@ class BasicLearner:
         self.prev_action = 0
         self.prev_state = np.zeros(8)
         #in-game percent of our agent
-        self.prev_pct = 0
-        self.prev_opp_pct = 0
+        self.prev_gamestate = FakeGamestate()
         self.train_freq = train_freq
         self.curr_frame = 0
         self.shine1 = 0
@@ -38,6 +38,8 @@ class BasicLearner:
         model = Sequential()
         #8 inputs because projectile lists are length 6 and we also need player x and y
         model.add(Dense(24, input_dim=8, activation='relu'))
+        model.add(Dense(24, activation='relu'))
+        model.add(Dense(24, activation='relu'))
         model.add(Dense(24, activation='relu'))
         model.add(Dense(self.action_size, activation='linear'))
         model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
@@ -73,14 +75,9 @@ class BasicLearner:
         state = self.getState(gamestate)
         if not self.start:
             #if we aren't on the first frame, we must've done something last frame
-            #next_state = self.getState(gamestate)
             reward = self.calcReward(gamestate)
-            #disincentivize spamming shine
-            #if self.prev_action != 0:
-                #reward -= 1
             done = False
             self.remember(self.prev_state, self.prev_action, reward, state, done)
-            #print(reward)
         else:
             self.start = False
 
@@ -89,7 +86,12 @@ class BasicLearner:
         if (self.curr_frame%self.train_freq == 0 and len(self.memory) > 32):
             self.replay(32)
         self.curr_frame += 1
+        self.prev_gamestate.copy(gamestate)
         return self.prev_action
+
+    def copy_gamestate(self, gamestate):
+        #we really only need the projectiles
+        self.prev_gamestate = copy.deepcopy(gamestate.projectiles)
 
     #process the gamestate and get the closest projectile as well as the player x,y
     def getState(self, gamestate):
@@ -107,20 +109,58 @@ class BasicLearner:
 
     #process the current state and the prev state to get the reward (percentage diff)
     def calcReward(self, gamestate):
+        #filter out non-fox-laser projectiles
+        projectiles = [p for p in gamestate.projectiles if p.subtype == melee.enums.ProjectileSubtype.FOX_LASER and p.x_speed != 0]
+        old_projectiles = [p for p in self.prev_gamestate.projectiles if p[0].subtype == melee.enums.ProjectileSubtype.FOX_LASER and p[0].x_speed != 0]
         opp_pct = gamestate.opponent_state.percent
         pct = gamestate.ai_state.percent
-        reward = (opp_pct - self.prev_opp_pct) * 3
-        reward += self.prev_pct - pct
-        self.prev_pct = pct
-        self.prev_opp_pct = opp_pct
-        #print(gamestate.ai_state.action)
+        reward = (self.prev_gamestate.ai_state.percent - pct)
         '''
+        reward = (opp_pct - self.prev_gamestate.opponent_state.percent)
+        print(gamestate.ai_state.action)
         if gamestate.ai_state.action == Action.SHIELD_STUN:
             print("reflect")
             reward += 10
-        '''
         if gamestate.ai_state.action in [Action.SHIELD_BREAK_FLY, Action.SHIELD_BREAK_FALL]:
             #print("stun")
-            reward -= 10
+            #reward -= 10
+        '''
+        #print("{}-old-{}:{}".format(self.curr_frame, len(old_projectiles), self.prev_gamestate))
+        #print("{}-curr-{}:{}".format(self.curr_frame, len(projectiles), gamestate))
+
+        #check if we blocked a shot
+        #check if there was a projectile and now there isn't, and we haven't changed percent
+        for proj1 in old_projectiles:
+            found = False
+            for proj2 in projectiles:
+                if proj1[1] == id(proj2):
+                    found = True
+                    if proj1[0].x_speed != proj2.x_speed:
+                        print("reflected")
+                        reward += 50
+
+            #for some reason this is not consistent
+            #if an old projectile that was close to us can't be found, it must have been blocked or hit us
+            #if not found and abs(gamestate.ai_state.x - proj1[0].x) < 10 and (self.prev_gamestate.ai_state.percent - pct) == 0:
+            #    print("blocked")
+            #    reward += 10
+
+        '''
+        if len(old_projectiles) > 0 or len(projectiles) > 0:
+            #but maybe we blocked the shot, so check if the closest projectile has a negative velocity
+            elif old_closest.x_speed == closest.x_speed*-1 and (self.prev_gamestate.ai_state.percent - pct) == 0:
+                print("reflected")
+                reward += 50
+        '''
         return reward
 
+class FakeGamestate:
+    def __init__(self):
+        self.projectiles = []
+        self.ai_state = melee.gamestate.PlayerState()
+        self.opponent_state = melee.gamestate.PlayerState()
+
+    def copy(self, gamestate):
+        self.projectiles = [(copy.copy(x), id(x)) for x in gamestate.projectiles]
+        self.ai_state = copy.deepcopy(gamestate.ai_state)
+        self.opponent_state = copy.deepcopy(gamestate.opponent_state)
