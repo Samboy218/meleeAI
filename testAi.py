@@ -33,6 +33,8 @@ class BasicLearner:
         #1 = done shine 1
         #2 = done shine 2
         self.shine_state = 0
+        self.reward_data = []
+        self.q_data = []
 
     def build_model(self):
         model = Sequential()
@@ -76,7 +78,13 @@ class BasicLearner:
         if not self.start:
             #if we aren't on the first frame, we must've done something last frame
             reward = self.calcReward(gamestate)
+            #try to disincentivise excessive shielding
+            if self.prev_action == 1:
+                reward -= .1
             done = False
+            target = reward + self.gamma * np.amax(self.model.predict(np.array([state]))[0])
+            self.q_data.append(target)
+            self.reward_data.append(reward)
             self.remember(self.prev_state, self.prev_action, reward, state, done)
         else:
             self.start = False
@@ -85,6 +93,13 @@ class BasicLearner:
         self.prev_state = state
         if (self.curr_frame%self.train_freq == 0 and len(self.memory) > 32):
             self.replay(32)
+        if (self.curr_frame % (self.train_freq*20) == 0):
+            self.model.save("states/ShotBlock{}".format(self.curr_frame))
+            with open("data.csv", "a+") as f:
+                for line in zip(self.reward_data, self.q_data):
+                    f.write("{},{}\n".format(line[0], line[1]))
+                self.reward_data = []
+                self.q_data = []
         self.curr_frame += 1
         self.prev_gamestate.copy(gamestate)
         return self.prev_action
@@ -114,7 +129,7 @@ class BasicLearner:
         old_projectiles = [p for p in self.prev_gamestate.projectiles if p[0].subtype == melee.enums.ProjectileSubtype.FOX_LASER and p[0].x_speed != 0]
         opp_pct = gamestate.opponent_state.percent
         pct = gamestate.ai_state.percent
-        reward = (self.prev_gamestate.ai_state.percent - pct)
+        reward = (self.prev_gamestate.ai_state.percent - pct)*5
         '''
         reward = (opp_pct - self.prev_gamestate.opponent_state.percent)
         print(gamestate.ai_state.action)
@@ -137,7 +152,7 @@ class BasicLearner:
                     found = True
                     if proj1[0].x_speed != proj2.x_speed:
                         print("reflected")
-                        reward += 50
+                        reward += 100
 
             #for some reason this is not consistent
             #if an old projectile that was close to us can't be found, it must have been blocked or hit us
@@ -152,7 +167,7 @@ class BasicLearner:
                 print("reflected")
                 reward += 50
         '''
-        return reward
+        return np.float64(reward)
 
 class FakeGamestate:
     def __init__(self):
