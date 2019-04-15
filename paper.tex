@@ -23,7 +23,7 @@ from state s and action a. Similarly, a DQN uses a neural network in order to ap
 
 To begin the process, we have a manually controlled character randomly shoot a projectile towards our AI. At each frame of gameplay, we obtain 
 the game’s state, action, reward, and next state, append this to a list representing the DQN’s memory, and then train the AI with this list to 
-produce a new action. In this context, a state is a representation of the AI’s x\/y coordinates on the current state, as well as the x\/y 
+produce a new action. In this context, a state is a representation of the AI’s x/y coordinates on the current state, as well as the x/y 
 coordinates of projectiles close to the AI. The action retrieved in this context will be representative of whether the AI’s previous action was 
 to either shield or to take no action. The AI receives a specific reward based on a few criterium. A reward is first given based on how much 
 damage the AI has taken since the previous state; if it has taken damage, points will be deducted, while taking no damage results in no point 
@@ -38,11 +38,11 @@ via controller mapping, as well as to obtain information about the game’s curr
 learning, we chose to use Karas, a high\-level Python neural networks deep learning library, capable of running on top of TensorFlow, CNTK, or Theano.
 \section{Related Work}
 After reviewing the paper, “Playing Atari with Deep Reinforcement Learning”, our project shifted focus from solely using reinforcement learning 
-techniques, to adopting the authors’ proposed algorithm, the Deep Q Network [1]. As evident in the paper, the authors’ DQN technique surpassed 
+techniques, to adopting the authors’ proposed algorithm, the Deep Q Network \cite{atari}. As evident in the paper, the authors’ DQN technique surpassed 
 previous reinforcement learning methods within the same domain on six out of the seven Atari 2600 games. This led us to believe that, although 
 our domain is more complicated than the one presented in the paper, we could benefit greatly from replacing traditional Q Learning with Deep Q Learning. 
 Luckily, rather than reading in the environment via raw pixel inputs, the libmelee library allowed us to interface directly with the Dolphin emulator 
-in order to obtain important information about the game’s state, such as button presses and player\/projectile positions.
+in order to obtain important information about the game’s state, such as button presses and player/projectile positions.
 
 \section{Experiments and results}
 \begin{figure}[ht]
