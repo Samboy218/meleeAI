@@ -4,6 +4,7 @@ import math
 #import tensorflow as tf
 import numpy as np
 from keras.models import Sequential
+from keras.models import load_model
 from keras.layers import Dense
 from keras.optimizers import Adam
 import random
@@ -39,7 +40,7 @@ class BasicLearner:
     def build_model(self):
         model = Sequential()
         #8 inputs because projectile lists are length 6 and we also need player x and y
-        model.add(Dense(24, input_dim=8, activation='relu'))
+        model.add(Dense(24, input_dim=9, activation='relu'))
         model.add(Dense(24, activation='relu'))
         model.add(Dense(24, activation='relu'))
         model.add(Dense(24, activation='relu'))
@@ -79,10 +80,10 @@ class BasicLearner:
             #if we aren't on the first frame, we must've done something last frame
             reward = self.calcReward(gamestate)
             #try to disincentivise excessive shielding
-            if self.prev_action == 1:
-                reward -= .1
+            #if self.prev_action == 1:
+                #reward -= .1
             done = False
-            target = reward + self.gamma * np.amax(self.model.predict(np.array([state]))[0])
+            target = np.amax(self.model.predict(np.array([state]))[0])
             self.q_data.append(target)
             self.reward_data.append(reward)
             self.remember(self.prev_state, self.prev_action, reward, state, done)
@@ -112,6 +113,7 @@ class BasicLearner:
     def getState(self, gamestate):
         x = np.float64(gamestate.ai_state.x)
         y = np.float64(gamestate.ai_state.y)
+        action = np.float64(gamestate.ai_state.action.value)
         if (len(gamestate.projectiles) > 0):
             closest = min(gamestate.projectiles, key=lambda p: math.sqrt((p.y-y)**2 + (p.x-x)**2))
             proj = [np.float64(x) for x in closest.tolist()]
@@ -120,6 +122,7 @@ class BasicLearner:
         state = proj
         state.append(x)
         state.append(y)
+        state.append(action)
         return np.array(state, dtype=np.float64)
 
     #process the current state and the prev state to get the reward (percentage diff)
